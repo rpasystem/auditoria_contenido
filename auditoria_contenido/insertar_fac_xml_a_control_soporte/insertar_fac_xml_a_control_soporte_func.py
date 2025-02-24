@@ -82,6 +82,7 @@ def obtener_llaves_existentes_fac_xml(engine):
                                          error=str(e))
         return set()
 
+
 def insertar_control_soportes_fac_xml(engine, relacion_facturas_con_cuv, relacion_facturas_con_anexo, documentos, fecha_archivo_facturacion, existentes):
     """
     Inserta en listar.control_soportes los documentos obtenidos desde 
@@ -91,9 +92,11 @@ def insertar_control_soportes_fac_xml(engine, relacion_facturas_con_cuv, relacio
     insert_query = text("""
         INSERT INTO listar.control_soportes
         (fecha_soporte, origen_soporte, ruta_completa, nombre_soporte, llave_unica, cod_soporte, 
+         nombre_archivo_destino,  -- Nueva columna agregada
          resultado_analisis_contenido, convertido_parametros_resolucion, resultado_copia)
         VALUES
         (:fecha_soporte, :origen_soporte, :ruta_completa, :nombre_soporte, :llave_unica, :cod_soporte, 
+         :nombre_archivo_destino,  -- Nuevo campo insertado
          :resultado_analisis_contenido, :convertido_parametros_resolucion, :resultado_copia)
     """)
     
@@ -108,11 +111,20 @@ def insertar_control_soportes_fac_xml(engine, relacion_facturas_con_cuv, relacio
         # Determinar nombre_soporte según el formato.
         if formato.lower() == 'pdf':
             nombre_soporte = "FACTURA"
+            extension = ".PDF"
         elif formato.lower() == 'xml':
             nombre_soporte = "XML"
+            extension = ".XML"
+        elif formato.lower() == 'json':
+            nombre_soporte = "JSON"
+            extension = ".JSON"
         else:
             nombre_soporte = formato  # O asignar otro valor predeterminado
-        
+            extension = ""
+
+        # Construcción del nombre_archivo_destino
+        nombre_archivo_destino = f"{documento}-{nombre_soporte}{extension}"
+
         # Formar la llave compuesta.
         llave_compuesta = (documento, nombre_soporte)
         if llave_compuesta in existentes:
@@ -126,13 +138,14 @@ def insertar_control_soportes_fac_xml(engine, relacion_facturas_con_cuv, relacio
             "nombre_soporte": nombre_soporte,
             "llave_unica": documento,
             "cod_soporte": "1",
+            "nombre_archivo_destino": nombre_archivo_destino,  # Nuevo campo agregado
             "resultado_analisis_contenido": None,
             "convertido_parametros_resolucion": None,
             "resultado_copia": None
         })
         existentes.add(llave_compuesta)
 
-    # 🔹 2️⃣ Ahora procesamos las facturas que tienen CUV y ANEXO
+    # 🔹 2️⃣ Procesamos las facturas que tienen CUV, JSON y ANEXO
     for documento in relacion_facturas_con_cuv:
         if (documento, "CUV") not in existentes:
             registros.append({
@@ -142,22 +155,22 @@ def insertar_control_soportes_fac_xml(engine, relacion_facturas_con_cuv, relacio
                 "nombre_soporte": "CUV",
                 "llave_unica": documento,
                 "cod_soporte": "1",
+                "nombre_archivo_destino": f"{documento}-CUV.TXT",  # Nuevo campo agregado
                 "resultado_analisis_contenido": None,
                 "convertido_parametros_resolucion": None,
                 "resultado_copia": None
             })
             existentes.add((documento, "CUV"))
-    
-    # 🔹 2️⃣ Ahora procesamos las facturas que tienen CUV y ANEXO
-    for documento in relacion_facturas_con_cuv:
+
         if (documento, "JSON") not in existentes:
             registros.append({
                 "fecha_soporte": fecha_archivo_facturacion,
                 "origen_soporte": "ADMON",
-                "ruta_completa": "RUTA INTERNA",  # No hay ruta para CUV
+                "ruta_completa": "RUTA INTERNA",  # No hay ruta para JSON
                 "nombre_soporte": "JSON",
                 "llave_unica": documento,
                 "cod_soporte": "1",
+                "nombre_archivo_destino": f"{documento}-JSON.JSON",  # Nuevo campo agregado
                 "resultado_analisis_contenido": None,
                 "convertido_parametros_resolucion": None,
                 "resultado_copia": None
@@ -173,6 +186,7 @@ def insertar_control_soportes_fac_xml(engine, relacion_facturas_con_cuv, relacio
                 "nombre_soporte": "ANEXO",
                 "llave_unica": documento,
                 "cod_soporte": "1",
+                "nombre_archivo_destino": f"{documento}-ANEXO.PDF",  # Nuevo campo agregado
                 "resultado_analisis_contenido": None,
                 "convertido_parametros_resolucion": None,
                 "resultado_copia": None
@@ -197,6 +211,124 @@ def insertar_control_soportes_fac_xml(engine, relacion_facturas_con_cuv, relacio
             "Error al insertar en listar.control_soportes", 
             error=str(e)
         )
+
+
+
+# def insertar_control_soportes_fac_xml(engine, relacion_facturas_con_cuv, relacion_facturas_con_anexo, documentos, fecha_archivo_facturacion, existentes):
+#     """
+#     Inserta en listar.control_soportes los documentos obtenidos desde 
+#     soportes.documentos_descargados_api.
+#     """
+
+#     insert_query = text("""
+#         INSERT INTO listar.control_soportes
+#         (fecha_soporte, origen_soporte, ruta_completa, nombre_soporte, llave_unica, cod_soporte, 
+#          resultado_analisis_contenido, convertido_parametros_resolucion, resultado_copia)
+#         VALUES
+#         (:fecha_soporte, :origen_soporte, :ruta_completa, :nombre_soporte, :llave_unica, :cod_soporte, 
+#          :resultado_analisis_contenido, :convertido_parametros_resolucion, :resultado_copia)
+#     """)
+    
+#     registros = []
+
+#     # 🔹 1️⃣ Procesa los documentos obtenidos
+#     for doc in documentos:
+#         documento = doc.get("documento")
+#         formato = doc.get("formato")
+#         ruta = doc.get("ruta") or ""  # Manejo de valores nulos
+
+#         # Determinar nombre_soporte según el formato.
+#         if formato.lower() == 'pdf':
+#             nombre_soporte = "FACTURA"
+#         elif formato.lower() == 'xml':
+#             nombre_soporte = "XML"
+#         else:
+#             nombre_soporte = formato  # O asignar otro valor predeterminado
+        
+#         # Formar la llave compuesta.
+#         llave_compuesta = (documento, nombre_soporte)
+#         if llave_compuesta in existentes:
+#             continue
+        
+#         # Agregar el registro a la lista de inserción.
+#         registros.append({
+#             "fecha_soporte": fecha_archivo_facturacion,
+#             "origen_soporte": "ADMON",
+#             "ruta_completa": ruta,
+#             "nombre_soporte": nombre_soporte,
+#             "llave_unica": documento,
+#             "cod_soporte": "1",
+#             "resultado_analisis_contenido": None,
+#             "convertido_parametros_resolucion": None,
+#             "resultado_copia": None
+#         })
+#         existentes.add(llave_compuesta)
+
+#     # 🔹 2️⃣ Ahora procesamos las facturas que tienen CUV y ANEXO
+#     for documento in relacion_facturas_con_cuv:
+#         if (documento, "CUV") not in existentes:
+#             registros.append({
+#                 "fecha_soporte": fecha_archivo_facturacion,
+#                 "origen_soporte": "ADMON",
+#                 "ruta_completa": "RUTA INTERNA",  # No hay ruta para CUV
+#                 "nombre_soporte": "CUV",
+#                 "llave_unica": documento,
+#                 "cod_soporte": "1",
+#                 "resultado_analisis_contenido": None,
+#                 "convertido_parametros_resolucion": None,
+#                 "resultado_copia": None
+#             })
+#             existentes.add((documento, "CUV"))
+    
+#     # 🔹 2️⃣ Ahora procesamos las facturas que tienen CUV y ANEXO
+#     for documento in relacion_facturas_con_cuv:
+#         if (documento, "JSON") not in existentes:
+#             registros.append({
+#                 "fecha_soporte": fecha_archivo_facturacion,
+#                 "origen_soporte": "ADMON",
+#                 "ruta_completa": "RUTA INTERNA",  # No hay ruta para CUV
+#                 "nombre_soporte": "JSON",
+#                 "llave_unica": documento,
+#                 "cod_soporte": "1",
+#                 "resultado_analisis_contenido": None,
+#                 "convertido_parametros_resolucion": None,
+#                 "resultado_copia": None
+#             })
+#             existentes.add((documento, "JSON"))
+
+#     for documento, ruta_anexo in relacion_facturas_con_anexo.items():
+#         if (documento, "ANEXO") not in existentes:
+#             registros.append({
+#                 "fecha_soporte": fecha_archivo_facturacion,
+#                 "origen_soporte": "ADMON",
+#                 "ruta_completa": ruta_anexo,  
+#                 "nombre_soporte": "ANEXO",
+#                 "llave_unica": documento,
+#                 "cod_soporte": "1",
+#                 "resultado_analisis_contenido": None,
+#                 "convertido_parametros_resolucion": None,
+#                 "resultado_copia": None
+#             })
+#             existentes.add((documento, "ANEXO"))
+
+#     # 🔹 3️⃣ Verificar si hay registros nuevos antes de insertar
+#     if not registros:
+#         print("No hay registros nuevos para insertar en listar.control_soportes.")
+#         return
+
+#     # 🔹 4️⃣ Intentar la inserción en la base de datos
+#     try:
+#         with engine.begin() as connection:
+#             connection.execute(insert_query, registros)
+#         print("✅ Datos insertados en listar.control_soportes exitosamente.")
+#         existentes.clear()  # Limpieza de memoria después de la inserción
+#     except Exception as e:
+#         print(f"❌ Error al insertar en control_soportes: {e}")
+#         func_global.enviar_correo_error(
+#             "Error en inserción", 
+#             "Error al insertar en listar.control_soportes", 
+#             error=str(e)
+#         )
 
 
 def facturas_con_anexo(engine,facturas_base_auditoria):

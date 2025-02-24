@@ -28,7 +28,12 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf):
             servicio = fila[6].upper() if fila[6] else ""
             cliente = fila[7].upper() if fila[6] else ""
             documento_paciente = fila[8]
-            nombre_archivo = "-".join(str(fila[i]) if fila[i] is not None else "N/A" for i in range(9, 14)) + extension
+            
+            if origen_soporte == "UNIDAD RENAL":
+                nombre_archivo = "-".join(str(fila[i]) if fila[i] is not None else "N/A" for i in range(9, 14)) + extension
+            else:                
+                nombre_archivo = f"{llave_unica}-{nombre_soporte}{extension}"
+
             
 
             ruta_soporte_destino = os.path.join(ruta_carpeta_destino, nombre_archivo)
@@ -42,6 +47,22 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf):
             resultado_conversion_resolucion = None
             resultado_copia = None
 
+            
+            if origen_soporte == "ADMON":
+                if nombre_soporte == "FACTURA":                    
+                    resultado_analisis_contenido = "EJECUTADO SIN NOVEDAD"
+                    resultado_conversion_resolucion = conversion_resolucion(ruta_soporte_original, ruta_soporte_destino, llave_unica)
+                    resultado_copia = verificar_pdf(ruta_soporte_destino,nombre_soporte)
+                
+                elif nombre_soporte == "XML":                    
+                    resultado_analisis_contenido = "EJECUTADO SIN NOVEDAD"
+                    resultado_conversion_resolucion = "EJECUTADO SIN NOVEDAD"
+                    copiar_archivo(ruta_soporte_original, ruta_soporte_destino)
+                    resultado_copia = verificar_pdf(ruta_soporte_destino,nombre_soporte)
+
+
+            
+            
             if origen_soporte == "UNIDAD RENAL":
                 resultado_analisis_contenido = validaciones (sistema_operativo, ruta_soporte_original,
                                                             ruta_soporte_destino, nombre_soporte, ruta_qpdf,

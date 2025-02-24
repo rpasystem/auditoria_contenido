@@ -33,7 +33,7 @@ def insertar_datos_control(engine, datos):
     """
     try:
         with engine.begin() as connection:
-            # 1️⃣ Crear la tabla temporal con las columnas correctas
+            # 1️⃣ Crear la tabla temporal con la nueva columna
             connection.execute(text("""
                 CREATE TEMP TABLE temp_control_soportes (
                     fecha_soporte DATE,
@@ -65,12 +65,13 @@ def insertar_datos_control(engine, datos):
                 lista_temp
             )
             
-            # 4️⃣ Insertar en la tabla final con las columnas correctas
+            # 4️⃣ Insertar en la tabla final con la nueva columna
             connection.execute(text("""
                 INSERT INTO listar.control_soportes (
                     fecha_soporte, origen_soporte, ruta_completa, nombre_soporte, llave_unica, 
                     unidad_renal, servicio, cliente, documento_paciente, 
                     codigo_sede, llave_a, llave_b, cod_soporte, origen_sede, extramural, 
+                    nombre_archivo_destino,  -- Nueva columna agregada
                     resultado_analisis_contenido, convertido_parametros_resolucion, resultado_copia
                 )
                 SELECT 
@@ -89,6 +90,12 @@ def insertar_datos_control(engine, datos):
                     COALESCE((string_to_array(llave_unica, '-'))[4], '') AS cod_soporte,
                     COALESCE((string_to_array(llave_unica, '-'))[5], '') AS origen_sede,
                     COALESCE((string_to_array(llave_unica, '-'))[6], '') AS extramural,
+                    -- Nueva columna: concatenación de valores con ".PDF"
+                    COALESCE((string_to_array(llave_unica, '-'))[1], '') || '-' ||
+                    COALESCE((string_to_array(llave_unica, '-'))[2], '') || '-' ||
+                    COALESCE((string_to_array(llave_unica, '-'))[3], '') || '-' ||
+                    COALESCE((string_to_array(llave_unica, '-'))[4], '') || '-' ||
+                    COALESCE((string_to_array(llave_unica, '-'))[6], '') || '.PDF' AS nombre_archivo_destino,
                     NULL AS resultado_analisis_contenido,
                     NULL AS convertido_parametros_resolucion,
                     NULL AS resultado_copia
@@ -103,6 +110,7 @@ def insertar_datos_control(engine, datos):
             "Error al insertar datos en listar.control_soportes", 
             error=str(e)
         )
+
 
 
 from sqlalchemy.sql import text

@@ -14,8 +14,10 @@ def convertir_ruta(ruta):
     """
     Convierte una ruta de Windows a Linux y viceversa automáticamente.
     
-    - Si estás en Windows y la ruta es de Linux (/mnt/FACTURACION CAPRECOM2/), la convierte a V:/.
-    - Si estás en Linux y la ruta es de Windows (V:/), la convierte a /mnt/FACTURACION CAPRECOM2/.
+    - Si estás en Windows y la ruta es de Linux (/mnt/FACTURACION CAPRECOM2/ o /mnt/Y/), 
+      la convierte a V:/ o Y:/ respectivamente.
+    - Si estás en Linux y la ruta es de Windows (V:/ o Y:/), 
+      la convierte a /mnt/FACTURACION CAPRECOM2/ o /mnt/Y/ respectivamente.
     """
     sistema_operativo = os.name  # 'nt' = Windows, 'posix' = Linux/Mac
 
@@ -23,15 +25,20 @@ def convertir_ruta(ruta):
     if sistema_operativo == "nt":
         if ruta.startswith("/mnt/FACTURACION CAPRECOM2/"):
             ruta = ruta.replace("/mnt/FACTURACION CAPRECOM2/", "V:/")
-            ruta = ruta.replace("/", "\\")  # Formato Windows
+        elif ruta.startswith("/mnt/Y/"):
+            ruta = ruta.replace("/mnt/Y/", "Y:/")
+        ruta = ruta.replace("/", "\\")  # Formato Windows
     
     # Convertir de Windows a Linux
     elif sistema_operativo == "posix":
         if ruta.startswith("V:\\") or ruta.startswith("V:/"):
             ruta = ruta.replace("V:\\", "/mnt/FACTURACION CAPRECOM2/").replace("V:/", "/mnt/FACTURACION CAPRECOM2/")
-            ruta = ruta.replace("\\", "/")  # Formato Linux
+        elif ruta.startswith("Y:\\") or ruta.startswith("Y:/"):
+            ruta = ruta.replace("Y:\\", "/mnt/Y/").replace("Y:/", "/mnt/Y/")
+        ruta = ruta.replace("\\", "/")  # Formato Linux
 
     return ruta
+
 
 
 from sqlalchemy.sql import text
@@ -41,7 +48,7 @@ from sqlalchemy.sql import text
 def soporte_a_procesar(engine):
     """
     Obtiene todas las filas de listar.control_soportes donde:
-    - `resultado_analisis_contenido` NO es 'VALIDACION EXITOSA'.
+    - `resultado_analisis_contenido` NO es 'EJECUTADO SIN NOVEDAD'.
     - Al menos una de las siguientes columnas NO es 'EJECUTADO SIN NOVEDAD' o está NULL:
       - `resultado_analisis_contenido`
       - `convertido_parametros_resolucion`

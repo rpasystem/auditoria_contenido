@@ -11,6 +11,7 @@ control_soportes = Table(
     Column('ruta_completa', String),
     Column('nombre_soporte', String,primary_key=True),
     Column('llave_unica', String, primary_key=True),            
+    Column('nombre_archivo_destino', String),            
     Column('unidad_renal', String),            
     Column('servicio', String),            
     Column('cliente', String),            
