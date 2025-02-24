@@ -199,25 +199,28 @@ def insertar_control_soportes_fac_xml(engine, relacion_facturas_con_cuv, relacio
         )
 
 
-def facturas_con_anexo(engine):
+def facturas_con_anexo(engine,facturas_base_auditoria):
     """
     Consulta la base de datos para obtener las facturas que tienen 'ANEXO' en sop_admon_pte.
     """
-    # query = text("""
-    #     SELECT factura, ruta_completa
-    #     FROM listar.listar_ruta_compartida_depurada_anexo        
-    # """)
-
     query = text("""
-        SELECT factura 
-        FROM auditoria_soportes.reporte_auditoria
-        WHERE sop_admon_completos LIKE '%ANEXO%'
+        SELECT factura, ruta_completa
+        FROM listar.listar_ruta_compartida_depurada_anexo        
     """)
+
+    # query = text("""
+    #     SELECT factura 
+    #     FROM auditoria_soportes.reporte_auditoria
+    #     WHERE sop_admon_completos LIKE '%ANEXO%'
+    # """)
 
     with engine.connect() as connection:
         result = connection.execute(query)
         listado_facturas_con_anexo = {factura: ruta_completa for factura, ruta_completa in result.fetchall()}
-        return listado_facturas_con_anexo
+        
+
+    listado_facturas_con_anexo_que_se_necesitan = {factura: ruta for factura, ruta in listado_facturas_con_anexo.items() if factura in facturas_base_auditoria}
+    return listado_facturas_con_anexo_que_se_necesitan
 
 def facturas_con_cuv(engine):
     """

@@ -38,9 +38,9 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf):
 
             print(f"Se inicia el analisis del archivo {nombre_archivo}")
 
-            resultado_analisis_contenido = "PTE INICIAR EL PROCESO"
-            resultado_conversion_resolucion = "PTE INICIAR EL PROCESO"
-            resultado_copia = "PTE INICIAR EL PROCESO"
+            resultado_analisis_contenido = None
+            resultado_conversion_resolucion = None
+            resultado_copia = None
 
             if origen_soporte == "UNIDAD RENAL":
                 resultado_analisis_contenido = validaciones (sistema_operativo, ruta_soporte_original,
@@ -48,17 +48,10 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf):
                                                             servicio,documento_paciente,cliente)
                 
                 
-                if "RECHAZO"  in resultado_analisis_contenido:
-                    resultado_conversion_resolucion = "Novedad en la auditoria de contenido"
-                    resultado_copia = "Novedad en la auditoria de contenido"
-                    
-                else:
+                if "RECHAZO"  not in resultado_analisis_contenido:                    
                     resultado_conversion_resolucion = conversion_resolucion(ruta_soporte_original, ruta_soporte_destino, llave_unica)
 
-                    if resultado_conversion_resolucion != "EJECUTADO SIN NOVEDAD":
-                        resultado_copia = "Novedad en la conversion del archivo"
-                        
-                    else:
+                    if resultado_conversion_resolucion == "EJECUTADO SIN NOVEDAD":                        
                         resultado_copia = verificar_pdf(ruta_soporte_destino,nombre_soporte)
                 
                 

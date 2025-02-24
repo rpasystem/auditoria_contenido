@@ -25,7 +25,7 @@ def insertar_fac_xml_a_control_soporte(engine):
     
 
     relacion_facturas_con_cuv = facturas_con_cuv (engine)
-    relacion_facturas_con_anexo = facturas_con_anexo (engine)
+    relacion_facturas_con_anexo = facturas_con_anexo (engine,facturas_base_auditoria)
     
     existentes = obtener_llaves_existentes_fac_xml(engine)    
 
