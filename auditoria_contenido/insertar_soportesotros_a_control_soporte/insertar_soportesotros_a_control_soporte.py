@@ -32,7 +32,7 @@ def insertar_soportesotros_a_control_soporte(engine):
     else:    
         # Insertar los registros nuevos utilizando la tabla temporal.
         insertar_datos_control(engine, datos_a_insertar)
-        actualizar_otros_datos(engine)
+    actualizar_otros_datos(engine)
         
     
     

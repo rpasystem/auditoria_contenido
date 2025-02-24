@@ -430,33 +430,35 @@ def validar_documento_y_fecha(nombre_soporte, servicio, texto_pdf, documento_pac
     
     
     # PARA CARECLOUD
-    elif "Consulta de Protección Renal" in texto_pdf and "SaludTools" in texto_pdf:
-        "BUSCA EL DOCUMENTO DEL PACIENTE"
-        palabra_inicio = "No. de Identificación:"
-        palabra_fin = "Fecha de Nacimiento:"
-        resultado_documento_paciente = extraer_texto_entre(texto_pdf, palabra_inicio, palabra_fin)
-        if len(resultado_documento_paciente) < 1:
-            validacion_documento_paciente = "NO SE ENCONTRO LA CADENA PARA EXTRAER EL DOCUMENTO"
-        else:
-            documento_resultado = re.findall(r'\d+', resultado_documento_paciente)
-            if documento_resultado and documento_resultado[0] == documento_paciente:
-                validacion_documento_paciente = "OK"
+    elif "Consulta de Protección Renal" in texto_pdf or "Consulta de Transplante Renal" in texto_pdf:
+        if "SaludTools" in texto_pdf or "saludtools" in texto_pdf:
+         
+            "BUSCA EL DOCUMENTO DEL PACIENTE"
+            palabra_inicio = "No. de Identificación:"
+            palabra_fin = "Fecha de Nacimiento:"
+            resultado_documento_paciente = extraer_texto_entre(texto_pdf, palabra_inicio, palabra_fin)
+            if len(resultado_documento_paciente) < 1:
+                validacion_documento_paciente = "NO SE ENCONTRO LA CADENA PARA EXTRAER EL DOCUMENTO"
             else:
-                validacion_documento_paciente = "ERRADA"
-        
-        
-        ## BUSCA LA FECHA DE ATENCION"
-        palabra_inicio = "Fecha y hora de inicio de la atención: "
-        palabra_fin = " Nombre de consulta:"
-        resultado_fecha = extraer_texto_entre(texto_pdf, palabra_inicio, palabra_fin)
-        if resultado_fecha is None:
-            validacion_fecha = "NO SE ENCONTRO LA CADENA PARA EXTRAER LA FECHA"
-        else:
-            fecha_resultado = formatear_fecha(resultado_fecha)
-            if fecha_resultado == fecha_a_validar:
-                validacion_fecha = "OK"
+                documento_resultado = re.findall(r'\d+', resultado_documento_paciente)
+                if documento_resultado and documento_resultado[0] == documento_paciente:
+                    validacion_documento_paciente = "OK"
+                else:
+                    validacion_documento_paciente = "ERRADA"
+            
+            
+            ## BUSCA LA FECHA DE ATENCION"
+            palabra_inicio = "Fecha y hora de inicio de la atención: "
+            palabra_fin = " Nombre de consulta:"
+            resultado_fecha = extraer_texto_entre(texto_pdf, palabra_inicio, palabra_fin)
+            if resultado_fecha is None:
+                validacion_fecha = "NO SE ENCONTRO LA CADENA PARA EXTRAER LA FECHA"
             else:
-                validacion_fecha = "ERRADA"
+                fecha_resultado = formatear_fecha(resultado_fecha)
+                if fecha_resultado == fecha_a_validar:
+                    validacion_fecha = "OK"
+                else:
+                    validacion_fecha = "ERRADA"
 
     
     elif "AUTORIZACION" in nombre_soporte and cliente == "COOSALUD":
