@@ -6,6 +6,7 @@ import subprocess
 import fitz
 import re
 import time
+import json
 from datetime import datetime
 from PyPDF2 import PdfReader
 
@@ -610,3 +611,95 @@ def listar_archivos(ruta_base):
 def obtener_nombres_archivos(root, files):
     """ Devuelve solo los nombres de los archivos en un directorio. """
     return [file for file in files]
+
+
+from datetime import datetime
+
+def crear_archivo_cuv(ruta_soporte_destino, documento, fecha_radicacion, cuv):
+    """
+    Crea un archivo TXT en la ruta especificada con la información de la factura, 
+    la fecha de radicación formateada y el CUV.
+    """
+    # Formatear la fecha de radicación a 'YYYY-MM-DD HH:MM:SS'
+    fecha_radicacion_formateada = fecha_radicacion.strftime('%Y-%m-%d %H:%M:%S')
+
+    contenido = f"""No. Factura : {documento}
+Fecha Radicación: {fecha_radicacion_formateada}
+CUV: {cuv}
+    """
+
+    try:
+        with open(ruta_soporte_destino, "w", encoding="utf-8") as archivo:
+            archivo.write(contenido)
+        print(f"✅ Archivo TXT creado correctamente en: {ruta_soporte_destino}")
+    except Exception as e:
+        print(f"❌ Error al crear el archivo TXT: {e}")
+
+
+
+def descarga_cuv(engine, num_factura,ruta_soporte_destino,nombre_soporte,extension_soporte_destino):
+    """
+    Consulta la tabla `api.validacion_rips` para obtener el documento, CUV y fecha de radicación
+    donde `documento` coincida exactamente con `num_factura`.
+    """
+    query = text("""
+        SELECT documento, cuv, fecha_radicacion 
+        FROM api.validacion_rips
+        WHERE documento = :num_factura
+    """)
+
+    with engine.begin() as connection:
+        result = connection.execute(query, {"num_factura": num_factura})  # Coincidencia exacta
+        registros = result.fetchall()
+    
+    for registro in registros:
+        documento = registro[0]  # Primer elemento: documento
+        cuv = registro[1]        # Segundo elemento: cuv (hash o identificador)
+        fecha_radicacion = registro[2]  # Tercer elemento: fecha de radicación (datetime)
+        crear_archivo_cuv(ruta_soporte_destino, documento, fecha_radicacion, cuv)
+        resultado = verificar_pdf(ruta_soporte_destino,nombre_soporte,extension_soporte_destino)
+        
+
+    return resultado
+
+
+def descarga_json(engine, num_factura,ruta_soporte_destino,nombre_soporte,extension_soporte_destino):
+    """
+    Consulta la tabla `api.validacion_rips` para obtener el documento, CUV y fecha de radicación
+    donde `documento` coincida exactamente con `num_factura`.
+    """
+    query = text("""
+        SELECT data_json  -- 🔹 Aquí estaba el error, antes decía "daja_json"
+        FROM xml.data_json
+        WHERE nombre_archivo = :num_factura
+    """)
+
+    with engine.begin() as connection:
+        result = connection.execute(query, {"num_factura": num_factura})
+        json_completo = result.fetchall()
+    
+        exportar_data_json(ruta_soporte_destino, json_completo)
+        resultado = verificar_pdf(ruta_soporte_destino,nombre_soporte,extension_soporte_destino)
+    
+    return resultado
+
+
+def exportar_data_json(ruta_soporte_destino, json_completo):
+    """
+    Exporta el contenido de json_completo a un archivo JSON en la ruta especificada.
+    """
+    try:
+        # Extraer el diccionario de la estructura (json_completo es una lista con una tupla dentro)
+        data_json_content = json_completo[0][0] if json_completo else {}
+
+        # Escribir el JSON en el archivo
+        with open(ruta_soporte_destino, 'w', encoding='utf-8') as f:
+            json.dump(data_json_content, f, ensure_ascii=False, indent=4)
+
+        print(f"✅ Archivo JSON exportado: {ruta_soporte_destino}")
+        return True
+    except Exception as e:
+        print(f"❌ Error al exportar archivo JSON: {e}")
+        return False
+
+

@@ -72,9 +72,19 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf):
                     copiar_archivo(ruta_soporte_original, ruta_soporte_destino)
                     resultado_copia = verificar_pdf(ruta_soporte_destino,nombre_soporte, extension_soporte_destino,)
                 
+                elif nombre_soporte == "CUV":
+                    resultado_analisis_contenido = "EJECUTADO SIN NOVEDAD"
+                    resultado_conversion_resolucion = "EJECUTADO SIN NOVEDAD"
+                    resultado_copia = descarga_cuv(engine, llave_unica,ruta_soporte_destino,nombre_soporte,extension_soporte_destino)
+
+                elif nombre_soporte =="JSON":
+                    resultado_analisis_contenido = "EJECUTADO SIN NOVEDAD"
+                    resultado_conversion_resolucion = "EJECUTADO SIN NOVEDAD"
+                    resultado_copia = descarga_json(engine, llave_unica,ruta_soporte_destino,nombre_soporte,extension_soporte_destino)
+    
                 else:
-                    pass
-            
+                    resultado_analisis_contenido = f"RECHAZO: El soporte {nombre_soporte} no está configurado"
+                    
             else:
                 resultado_analisis_contenido = validaciones (sistema_operativo, ruta_soporte_original,
                                                             ruta_soporte_destino, nombre_soporte, ruta_qpdf,
