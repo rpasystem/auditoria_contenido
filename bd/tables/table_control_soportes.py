@@ -7,9 +7,14 @@ metadata = MetaData(schema='listar')
 control_soportes = Table(
     'control_soportes', metadata,
     Column('fecha_soporte', Date),  # Si prefieres, puedes usar Date
+    Column('origen_soporte', String),
     Column('ruta_completa', String),
-    Column('nombre_soporte', String),
-    Column('llave_unica', String, primary_key=True),
+    Column('nombre_soporte', String,primary_key=True),
+    Column('llave_unica', String, primary_key=True),            
+    Column('unidad_renal', String),            
+    Column('servicio', String),            
+    Column('cliente', String),            
+    Column('documento_paciente', String),
     Column('codigo_sede', String),
     Column('llave_a', String),
     Column('llave_b', String),

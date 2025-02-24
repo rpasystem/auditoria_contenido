@@ -26,10 +26,15 @@ def insertar_soportesotros_a_control_soporte(engine):
 
     if not datos_a_insertar:
         print("Todos los registros ya existen en listar.control_soportes. No se insertará nada.")
-        return
+    else:    
+        # Insertar los registros nuevos utilizando la tabla temporal.
+        insertar_datos_control(engine, datos_a_insertar)
+        actualizar_otros_datos(engine)
+        
+    
+    
 
-    # Insertar los registros nuevos utilizando la tabla temporal.
-    insertar_datos_control(engine, datos_a_insertar)
+    
     
 
     

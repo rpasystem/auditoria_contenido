@@ -23,10 +23,13 @@ def insertar_fac_xml_a_control_soporte(engine):
         print("No se encontraron documentos con estado 'Exitosa'. Terminando ejecución.")
         return
     
+
+    relacion_facturas_con_cuv = facturas_con_cuv (engine)
+    relacion_facturas_con_anexo = facturas_con_anexo (engine)
     
     existentes = obtener_llaves_existentes_fac_xml(engine)    
 
     # 4. Insertar los datos obtenidos en listar.control_soportes_fac_xml.
-    insertar_control_soportes_fac_xml(engine, documentos, fecha_archivo_facturacion,existentes)
+    insertar_control_soportes_fac_xml(engine, relacion_facturas_con_cuv,relacion_facturas_con_anexo, documentos, fecha_archivo_facturacion,existentes)
     
 
