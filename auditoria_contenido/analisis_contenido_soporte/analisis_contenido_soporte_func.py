@@ -5,10 +5,19 @@ import os
 import subprocess
 import fitz
 import re
+import time
 from datetime import datetime
 from PyPDF2 import PdfReader
 
+from tqdm import tqdm  # 🔹 Para mostrar progreso
+from datetime import datetime
+from pytz import timezone
+from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
+
+# 🔹 Obtener la zona horaria del sistema (ajústala si es necesario)
+local_tz = timezone("America/Bogota")  # Cambia esto según la zona horaria correcta
 
 def convertir_ruta(ruta):
     """
@@ -45,7 +54,9 @@ from sqlalchemy.sql import text
 
 from sqlalchemy.sql import text
 
-def soporte_a_procesar(engine):
+from sqlalchemy.sql import text
+
+def soporte_a_procesar_con_novedades(engine):
     """
     Obtiene todas las filas de listar.control_soportes donde:
     - `resultado_analisis_contenido` NO es 'EJECUTADO SIN NOVEDAD'.
@@ -58,14 +69,13 @@ def soporte_a_procesar(engine):
         SELECT * FROM listar.control_soportes 
         WHERE 
             (resultado_analisis_contenido IS NULL 
-            OR resultado_analisis_contenido = '' 
-            OR resultado_analisis_contenido NOT LIKE 'VALIDACION EXITOSA')
-        AND 
+            OR resultado_analisis_contenido = '')             
+        OR 
             NOT (
                 COALESCE(resultado_analisis_contenido, '') = 'EJECUTADO SIN NOVEDAD' 
                 AND COALESCE(convertido_parametros_resolucion, '') = 'EJECUTADO SIN NOVEDAD' 
                 AND COALESCE(resultado_copia, '') = 'EJECUTADO SIN NOVEDAD'
-            );
+            )
     """)
 
     with engine.begin() as connection:
@@ -74,6 +84,54 @@ def soporte_a_procesar(engine):
     
     return registros
 
+
+def soporte_a_procesar_sin_novedades(engine):
+    """
+    Obtiene todas las filas de listar.control_soportes donde:
+    - `resultado_analisis_contenido`, `convertido_parametros_resolucion` y `resultado_copia`
+      son exactamente 'EJECUTADO SIN NOVEDAD' (sin NULL ni valores vacíos).
+    """
+    query = text("""
+        SELECT * FROM listar.control_soportes 
+        WHERE 
+            COALESCE(resultado_analisis_contenido, '') = 'EJECUTADO SIN NOVEDAD' 
+            AND COALESCE(convertido_parametros_resolucion, '') = 'EJECUTADO SIN NOVEDAD' 
+            AND COALESCE(resultado_copia, '') = 'EJECUTADO SIN NOVEDAD';
+    """)
+
+    with engine.begin() as connection:
+        result = connection.execute(query)
+        registros = result.fetchall()
+    
+    return registros
+
+
+    with engine.begin() as connection:
+        result = connection.execute(query)
+        registros = result.fetchall()
+    
+    return registros
+
+
+def soportes_en_bd(engine):
+    """
+    Obtiene todas las filas de listar.control_soportes donde:
+    - `resultado_analisis_contenido` NO es 'EJECUTADO SIN NOVEDAD'.
+    - Al menos una de las siguientes columnas NO es 'EJECUTADO SIN NOVEDAD' o está NULL:
+      - `resultado_analisis_contenido`
+      - `convertido_parametros_resolucion`
+      - `resultado_copia`
+    """
+    query = text("""
+        SELECT nombre_archivo_destino FROM listar.control_soportes 
+        WHERE resultado_analisis_contenido LIKE 'EJECUTADO SIN NOVEDAD'
+        OR convertido_parametros_resolucion LIKE 'EJECUTADO SIN NOVEDAD'
+        OR resultado_copia LIKE 'EJECUTADO SIN NOVEDAD';
+    """)
+
+    with engine.begin() as connection:
+        result = connection.execute(query)
+        return [fila[0] for fila in result.fetchall()]  # 🔹 Devuelve directamente una lista de strings
 
 
 
@@ -469,7 +527,7 @@ def validaciones (sistema_operativo, ruta_soporte_original,ruta_soporte_destino,
     return mensaje
 
 
-def actualizar_resultados(engine, llave_unica, resultado_analisis_contenido, resultado_conversion_resolucion, resultado_copia):
+def actualizar_resultados(engine, nombre_archivo_destino, resultado_analisis_contenido, resultado_conversion_resolucion, resultado_copia):
     """
     Actualiza las columnas en la tabla 'listar.control_soportes' usando la llave única.
     """
@@ -485,19 +543,19 @@ def actualizar_resultados(engine, llave_unica, resultado_analisis_contenido, res
                 SET resultado_analisis_contenido = :resultado_analisis,
                     convertido_parametros_resolucion = :resultado_conversion,  -- Nombre correcto
                     resultado_copia = :resultado_copia
-                WHERE llave_unica = :llave
+                WHERE nombre_archivo_destino = :llave
             """),
             {
                 "resultado_analisis": resultado_analisis_contenido,
                 "resultado_conversion": resultado_conversion_resolucion,  # Ajustado al nombre correcto
                 "resultado_copia": resultado_copia,
-                "llave": llave_unica
+                "llave": nombre_archivo_destino
             }
         )
         
         # Confirmar cambios en la base de datos
         session.commit()
-        print(f"✅ Se actualizaron correctamente los resultados para la llave_unica {llave_unica}")
+        print(f"✅ Se actualizaron correctamente los resultados para la llave_unica {nombre_archivo_destino}")
     
     except Exception as e:
         session.rollback()  # Deshacer cambios en caso de error
@@ -508,13 +566,17 @@ def actualizar_resultados(engine, llave_unica, resultado_analisis_contenido, res
 
 
 
-def verificar_pdf(ruta_soporte_destino,nombre_soporte):
+def verificar_pdf(ruta_soporte_destino,nombre_soporte,extension_soporte_destino):
     """Verifica si el archivo PDF existe y tiene al menos una página válida."""
     if not os.path.exists(ruta_soporte_destino):
         mensaje = f"RECHAZO: El soporte {nombre_soporte} no se copio"
         return mensaje
+    if "PDF" not in  extension_soporte_destino:
+        mensaje = "EJECUTADO SIN NOVEDAD"
+        return mensaje
 
     try:
+        
         reader = PdfReader(ruta_soporte_destino)
         if len(reader.pages) > 0:
             mensaje = "EJECUTADO SIN NOVEDAD"
@@ -525,3 +587,26 @@ def verificar_pdf(ruta_soporte_destino,nombre_soporte):
     except Exception as e:
         mensaje = f"Error al abrir el soporte {nombre_soporte}"
         return mensaje
+    
+
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+def listar_archivos(ruta_base):
+    """
+    Lista únicamente los nombres de los archivos en la ruta proporcionada
+    usando threading para mejorar la velocidad.
+    """
+    archivos = []
+
+    with ThreadPoolExecutor() as executor:
+        futures = [executor.submit(obtener_nombres_archivos, root, files) for root, _, files in os.walk(ruta_base)]
+        
+        for future in as_completed(futures):
+            archivos.extend(future.result())
+
+    return archivos
+
+def obtener_nombres_archivos(root, files):
+    """ Devuelve solo los nombres de los archivos en un directorio. """
+    return [file for file in files]

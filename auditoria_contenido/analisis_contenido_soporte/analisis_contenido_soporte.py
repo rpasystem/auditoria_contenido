@@ -7,41 +7,53 @@ from analisis_contenido_soporte.conversion_resolucion import *
 
 def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf):
     
-    registros = soporte_a_procesar(engine)
+    listar_soportes_en_carpeta_local = listar_archivos(ruta_carpeta_destino)
+    listar_soportes_en_bd = soportes_en_bd(engine)
+    registros_con_novedades = soporte_a_procesar_con_novedades(engine)
+    registros_sin_novedades = soporte_a_procesar_sin_novedades(engine)
+    
+    # Convertimos listar_soportes_en_carpeta_local en un set para búsquedas rápidas
+    archivos_en_carpeta = set(listar_soportes_en_carpeta_local)
+
+    # Filtrar los registros de registros_sin_novedades que no están en la carpeta local
+    for registro in registros_sin_novedades:
+        nombre_archivo_destino = registro[5]  # Columna con el nombre del archivo
+
+        if nombre_archivo_destino not in archivos_en_carpeta:
+            registros_con_novedades.append(registro)  # Agregar a registros_con_novedades
+
+    # ✅ Ahora registros_con_novedades incluye los archivos faltantes en la carpeta local
     
     # Detectar el sistema operativo
     sistema_operativo = os.name  # 'nt' para Windows, 'posix' para Linux/Mac
 
-    resultados = []
-    
-    for fila in registros:
+    for fila in registros_con_novedades:
         try:
             
             origen_soporte = fila[1]             
             ruta_soporte_original = fila[2]
             ruta_soporte_original = convertir_ruta(ruta_soporte_original)    
             _, extension = os.path.splitext(ruta_soporte_original)               
-            extension = extension.upper()
+            extension_soporte_original = extension.upper()
             nombre_soporte = fila[3]
             llave_unica =  fila[4]
-            unidad_renal = fila[5]            
-            servicio = fila[6].upper() if fila[6] else ""
-            cliente = fila[7].upper() if fila[6] else ""
-            documento_paciente = fila[8]
+            nombre_archivo_destino = fila[5]
+            _, extension = os.path.splitext(nombre_archivo_destino)
+            extension_soporte_destino = extension.upper()
+            unidad_renal = fila[6]            
+            servicio = fila[7].upper() if fila[7] else ""
+            cliente = fila[8].upper() if fila[8] else ""
+            documento_paciente = fila[9]
+                        
+            nombre_archivo = "-".join(str(fila[i]) if fila[i] is not None else "N/A" for i in range(9, 14)) + extension_soporte_original
             
-            if origen_soporte == "UNIDAD RENAL":
-                nombre_archivo = "-".join(str(fila[i]) if fila[i] is not None else "N/A" for i in range(9, 14)) + extension
-            else:                
-                nombre_archivo = f"{llave_unica}-{nombre_soporte}{extension}"
 
-            
-
-            ruta_soporte_destino = os.path.join(ruta_carpeta_destino, nombre_archivo)
+            ruta_soporte_destino = os.path.join(ruta_carpeta_destino, nombre_archivo_destino)
 
             if servicio is None:
                 continue
 
-            print(f"Se inicia el analisis del archivo {nombre_archivo}")
+            print(f"Se inicia el analisis del archivo {nombre_archivo_destino}")
 
             resultado_analisis_contenido = None
             resultado_conversion_resolucion = None
@@ -49,21 +61,21 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf):
 
             
             if origen_soporte == "ADMON":
-                if nombre_soporte == "FACTURA":                    
+                if nombre_soporte == "FACTURA" or nombre_soporte == "ANEXO" :                    
                     resultado_analisis_contenido = "EJECUTADO SIN NOVEDAD"
                     resultado_conversion_resolucion = conversion_resolucion(ruta_soporte_original, ruta_soporte_destino, llave_unica)
-                    resultado_copia = verificar_pdf(ruta_soporte_destino,nombre_soporte)
+                    resultado_copia = verificar_pdf(ruta_soporte_destino,nombre_soporte, extension_soporte_destino)
                 
                 elif nombre_soporte == "XML":                    
                     resultado_analisis_contenido = "EJECUTADO SIN NOVEDAD"
                     resultado_conversion_resolucion = "EJECUTADO SIN NOVEDAD"
                     copiar_archivo(ruta_soporte_original, ruta_soporte_destino)
-                    resultado_copia = verificar_pdf(ruta_soporte_destino,nombre_soporte)
-
-
+                    resultado_copia = verificar_pdf(ruta_soporte_destino,nombre_soporte, extension_soporte_destino,)
+                
+                else:
+                    pass
             
-            
-            if origen_soporte == "UNIDAD RENAL":
+            else:
                 resultado_analisis_contenido = validaciones (sistema_operativo, ruta_soporte_original,
                                                             ruta_soporte_destino, nombre_soporte, ruta_qpdf,
                                                             servicio,documento_paciente,cliente)
@@ -73,13 +85,11 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf):
                     resultado_conversion_resolucion = conversion_resolucion(ruta_soporte_original, ruta_soporte_destino, llave_unica)
 
                     if resultado_conversion_resolucion == "EJECUTADO SIN NOVEDAD":                        
-                        resultado_copia = verificar_pdf(ruta_soporte_destino,nombre_soporte)
+                        resultado_copia = verificar_pdf(ruta_soporte_destino,nombre_soporte,extension_soporte_destino)
                 
                 
-                actualizar_resultados(engine, llave_unica, resultado_analisis_contenido, resultado_conversion_resolucion, resultado_copia)
+            actualizar_resultados(engine, nombre_archivo_destino, resultado_analisis_contenido, resultado_conversion_resolucion, resultado_copia)
             
-            else:
-                continue
 
         except Exception as e:
             print(f"❌ Error en el procesamiento del archivo: {nombre_archivo}")
