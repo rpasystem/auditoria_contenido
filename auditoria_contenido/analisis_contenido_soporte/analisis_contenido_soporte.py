@@ -49,9 +49,19 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf):
                 
                 
                 if "RECHAZO"  in resultado_analisis_contenido:
-                    continue
+                    resultado_conversion_resolucion = "Novedad en la auditoria de contenido"
+                    resultado_copia = "Novedad en la auditoria de contenido"
+                    
+                else:
+                    resultado_conversion_resolucion = conversion_resolucion(ruta_soporte_original, ruta_soporte_destino, llave_unica)
 
-                resultado_conversion_resolucion = conversion_resolucion(ruta_soporte_original, ruta_soporte_destino, llave_unica)
+                    if resultado_conversion_resolucion != "EJECUTADO SIN NOVEDAD":
+                        resultado_copia = "Novedad en la conversion del archivo"
+                        
+                    else:
+                        resultado_copia = verificar_pdf(ruta_soporte_destino,nombre_soporte)
+                
+                
                 actualizar_resultados(engine, llave_unica, resultado_analisis_contenido, resultado_conversion_resolucion, resultado_copia)
             
             else:

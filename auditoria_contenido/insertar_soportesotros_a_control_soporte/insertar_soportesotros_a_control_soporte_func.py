@@ -105,17 +105,18 @@ def insertar_datos_control(engine, datos):
         )
 
 
-
+from sqlalchemy.sql import text
 
 def obtener_llaves_existentes(engine):
     """
-    Consulta la tabla listar.control_soportes y retorna un conjunto con los valores de llave_unica ya registrados.
+    Consulta la tabla listar.control_soportes y retorna un conjunto con las combinaciones
+    (fecha_soporte, llave_unica) ya registradas en la base de datos.
     """
-    query = text("SELECT llave_unica FROM listar.control_soportes")
+    query = text("SELECT fecha_soporte, llave_unica FROM listar.control_soportes")
     try:
         with engine.connect() as connection:
             result = connection.execute(query)
-            llaves_existentes = {row[0] for row in result}
+            llaves_existentes = {(row[0], row[1]) for row in result}  # Devuelve tuplas (fecha_soporte, llave_unica)
         return llaves_existentes
     except Exception as e:
         print(f"❌ Error al obtener llaves existentes: {e}")
@@ -124,7 +125,27 @@ def obtener_llaves_existentes(engine):
             "Error al consultar las llaves en listar.control_soportes", 
             error=str(e)
         )
-        return set()
+        return set()  # Retorna conjunto vacío en caso de error
+
+
+# def obtener_llaves_existentes(engine):
+#     """
+#     Consulta la tabla listar.control_soportes y retorna un conjunto con los valores de llave_unica ya registrados.
+#     """
+#     query = text("SELECT llave_unica FROM listar.control_soportes")
+#     try:
+#         with engine.connect() as connection:
+#             result = connection.execute(query)
+#             llaves_existentes = {row[0] for row in result}
+#         return llaves_existentes
+#     except Exception as e:
+#         print(f"❌ Error al obtener llaves existentes: {e}")
+#         func_global.enviar_correo_error(
+#             "Error en consulta de llaves existentes", 
+#             "Error al consultar las llaves en listar.control_soportes", 
+#             error=str(e)
+#         )
+#         return set()
     
 
 

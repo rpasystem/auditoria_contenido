@@ -6,7 +6,7 @@ metadata = MetaData(schema='listar')
 # 🔹 Definición de la tabla control_soportes
 control_soportes = Table(
     'control_soportes', metadata,
-    Column('fecha_soporte', Date),  # Si prefieres, puedes usar Date
+    Column('fecha_soporte', Date,primary_key=True),  # Si prefieres, puedes usar Date
     Column('origen_soporte', String),
     Column('ruta_completa', String),
     Column('nombre_soporte', String,primary_key=True),

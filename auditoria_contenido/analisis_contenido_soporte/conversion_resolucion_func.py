@@ -72,3 +72,37 @@ def generar_informe_excel(errores, no_modificados, ruta_informe):
 
     # Guardar el archivo Excel
     wb.save(ruta_informe)
+
+
+import shutil
+import os
+
+def copiar_archivo(ruta_origen, ruta_destino):
+    """
+    Copia un archivo desde 'ruta_origen' a 'ruta_destino'.
+    Las rutas ya incluyen el nombre del archivo.
+    """
+    try:
+        # Verificar si el archivo de origen existe
+        if not os.path.exists(ruta_origen):
+            print(f"❌ Error: El archivo de origen no existe: {ruta_origen}")
+            return False
+
+        # Crear los directorios de destino si no existen
+        os.makedirs(os.path.dirname(ruta_destino), exist_ok=True)
+
+        # Copiar el archivo manteniendo los metadatos
+        shutil.copy2(ruta_origen, ruta_destino)
+
+        # Verificar si el archivo se copió correctamente
+        if os.path.exists(ruta_destino):
+            print(f"✅ Archivo copiado con éxito a: {ruta_destino}")
+            return True
+        else:
+            print(f"❌ Error: No se pudo copiar el archivo a: {ruta_destino}")
+            return False
+
+    except Exception as e:
+        print(f"❌ Error al copiar el archivo: {str(e)}")
+        return False
+

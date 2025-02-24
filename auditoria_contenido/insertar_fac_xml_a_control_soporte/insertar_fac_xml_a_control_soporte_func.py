@@ -203,9 +203,15 @@ def facturas_con_anexo(engine):
     """
     Consulta la base de datos para obtener las facturas que tienen 'ANEXO' en sop_admon_pte.
     """
+    # query = text("""
+    #     SELECT factura, ruta_completa
+    #     FROM listar.listar_ruta_compartida_depurada_anexo        
+    # """)
+
     query = text("""
-        SELECT factura, ruta_completa
-        FROM listar.listar_ruta_compartida_depurada_anexo        
+        SELECT factura 
+        FROM auditoria_soportes.reporte_auditoria
+        WHERE sop_admon_completos LIKE '%ANEXO%'
     """)
 
     with engine.connect() as connection:

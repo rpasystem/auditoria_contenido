@@ -6,6 +6,8 @@ import subprocess
 import fitz
 import re
 from datetime import datetime
+from PyPDF2 import PdfReader
+
 
 
 def convertir_ruta(ruta):
@@ -32,26 +34,40 @@ def convertir_ruta(ruta):
     return ruta
 
 
+from sqlalchemy.sql import text
+
+from sqlalchemy.sql import text
+
 def soporte_a_procesar(engine):
     """
-    Obtiene todas las filas de listar.control_soportes donde resultado_analisis_contenido
-    NO es 'VALIDACION EXITOSA'.
+    Obtiene todas las filas de listar.control_soportes donde:
+    - `resultado_analisis_contenido` NO es 'VALIDACION EXITOSA'.
+    - Al menos una de las siguientes columnas NO es 'EJECUTADO SIN NOVEDAD' o está NULL:
+      - `resultado_analisis_contenido`
+      - `convertido_parametros_resolucion`
+      - `resultado_copia`
     """
-    # 1. Consulta SQL
     query = text("""
         SELECT * FROM listar.control_soportes 
-        WHERE resultado_analisis_contenido IS NULL 
-        OR resultado_analisis_contenido = '' 
-        OR resultado_analisis_contenido NOT LIKE 'VALIDACION EXITOSA';
-
+        WHERE 
+            (resultado_analisis_contenido IS NULL 
+            OR resultado_analisis_contenido = '' 
+            OR resultado_analisis_contenido NOT LIKE 'VALIDACION EXITOSA')
+        AND 
+            NOT (
+                COALESCE(resultado_analisis_contenido, '') = 'EJECUTADO SIN NOVEDAD' 
+                AND COALESCE(convertido_parametros_resolucion, '') = 'EJECUTADO SIN NOVEDAD' 
+                AND COALESCE(resultado_copia, '') = 'EJECUTADO SIN NOVEDAD'
+            );
     """)
 
-    # 2. Ejecutar la consulta y obtener resultados
     with engine.begin() as connection:
         result = connection.execute(query)
-        registros = result.fetchall()  # Almacena los resultados en una lista de tuplas
+        registros = result.fetchall()
     
-    return registros  # Devuelve los resultados
+    return registros
+
+
 
 
 def validar_peso(ruta):
@@ -80,7 +96,8 @@ def validar_corrupto(ruta,sistema_operativo):
 
         # Verificar código de salida
         if archivo_valido.returncode != 0:
-            return f"CORRUPTO: {archivo_valido.stderr.decode('utf-8')}"
+            mensaje_error = archivo_valido.stderr.decode('utf-8')
+            return "CORRUPTO"
 
         # Si se genera correctamente, el archivo es válido
         os.remove("temp.pdf")  # Borrar el archivo temporal generado
@@ -340,7 +357,7 @@ def validar_documento_y_fecha(nombre_soporte, servicio, texto_pdf, documento_pac
             validacion_fecha = "NO SE ENCONTRO LA CADENA PARA EXTRAER LA FECHA"
         else:
             fecha_resultado = resultado_fecha
-            if "2025-01" in resultado_fecha:
+            if fecha_a_validar in resultado_fecha:
                 validacion_fecha = "OK"
             else:
                 validacion_fecha = "ERRADA"
@@ -403,11 +420,12 @@ def validar_documento_y_fecha(nombre_soporte, servicio, texto_pdf, documento_pac
 
 def validaciones (sistema_operativo, ruta_soporte_original,ruta_soporte_destino, nombre_soporte, ruta_qpdf,servicio,documento_paciente,cliente):
     
-    mensaje = "VALIDACION EXITOSA"
+    mensaje = "EJECUTADO SIN NOVEDAD"
 
     validacion_peso = validar_peso(ruta_soporte_original)
     if validacion_peso == "NO TIENE PESO":
         mensaje = f'RECHAZO: El soporte: {nombre_soporte} no tiene peso, revisar y volver a cargar'                
+        return mensaje
         
 
     validacion_corrupto = validar_corrupto(ruta_soporte_original,sistema_operativo)
@@ -418,11 +436,12 @@ def validaciones (sistema_operativo, ruta_soporte_original,ruta_soporte_destino,
         archivo_corregido = corregir_pdf(ruta_soporte_original, ruta_soporte_destino,ruta_qpdf,sistema_operativo)
         if archivo_corregido == "NO CORREGIDO":
             mensaje = f'RECHAZO: El soporte: {nombre_soporte} esta corrupto o no tiene los permisos necesario para modificarse, volver a descargarlo'
+            return mensaje
         
     validacion_escaneado = validar_escaneado(ruta_soporte_original)
 
     if validacion_escaneado == "ESCANEADO":                
-        mensaje = "VALIDACION EXITOSA"
+        mensaje = "EJECUTADO SIN NOVEDAD"
 
     else:
         texto_pdf_original = extraer_texto_pdf(ruta_soporte_original)
@@ -432,10 +451,10 @@ def validaciones (sistema_operativo, ruta_soporte_original,ruta_soporte_destino,
             nombre_soporte, servicio, texto_pdf, documento_paciente,cliente,ruta_soporte_destino)
         
         if validacion_documento_paciente == "ERRADA":
-            mensaje = f'NOTIFICACION: El soporte: {nombre_soporte} tiene el documento errado del paciente'
+            mensaje = f'RECHAZO: El soporte: {nombre_soporte} es del paciente {resultado_documento_paciente} y se busca el del paciente {documento_paciente}'
         
         elif validacion_fecha == "ERRADA":
-            mensaje = f'NOTIFICACION: El soporte {nombre_soporte} tiene una fecha de prestacion del servicio errada'                
+            mensaje = f'NOTIFICACION: El soporte {nombre_soporte} tiene una fecha de prestacion del servicio de {fecha_resultado}'                
                 
         elif validacion_documento_paciente == "ADVERTENCIA DE EJECUCION":
             mensaje = f'NOTIFICACION: El soporte {nombre_soporte} tiene una inconsistencia en el contenido'                
@@ -480,3 +499,22 @@ def actualizar_resultados(engine, llave_unica, resultado_analisis_contenido, res
     finally:
         session.close()  # Cerrar la sesión
 
+
+
+def verificar_pdf(ruta_soporte_destino,nombre_soporte):
+    """Verifica si el archivo PDF existe y tiene al menos una página válida."""
+    if not os.path.exists(ruta_soporte_destino):
+        mensaje = f"RECHAZO: El soporte {nombre_soporte} no se copio"
+        return mensaje
+
+    try:
+        reader = PdfReader(ruta_soporte_destino)
+        if len(reader.pages) > 0:
+            mensaje = "EJECUTADO SIN NOVEDAD"
+            return mensaje
+        else:
+            mensaje = f"RECHAZO: El soporte {nombre_soporte} está vacio"
+            return mensaje
+    except Exception as e:
+        mensaje = f"Error al abrir el soporte {nombre_soporte}"
+        return mensaje

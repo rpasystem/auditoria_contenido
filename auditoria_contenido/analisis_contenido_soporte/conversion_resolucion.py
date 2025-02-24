@@ -14,7 +14,8 @@ def conversion_resolucion(ruta_soporte_original, ruta_soporte_destino, llave_uni
     # Validar si los metadatos cumplen con los requisitos
     metadatos = validar_metadatos(ruta_soporte_original)
     if metadatos:
-        return "CONVERSION REALIZADA EXITOSAMENTE"
+        copiar_archivo(ruta_soporte_original, ruta_soporte_destino)
+        return "EJECUTADO SIN NOVEDAD"
 
     # Detectar sistema operativo
     sistema_operativo = platform.system()
@@ -62,7 +63,7 @@ def conversion_resolucion(ruta_soporte_original, ruta_soporte_destino, llave_uni
         # Ejecutar Ghostscript redirigiendo stdout y stderr para capturar mensajes de error
         result = subprocess.run(gs_command, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)        
         escribir_metadatos(ruta_soporte_destino, ruta_soporte_destino)
-        return "CONVERSION REALIZADA EXITOSAMENTE"
+        return "EJECUTADO SIN NOVEDAD"
 
     except subprocess.CalledProcessError as e:
         # Capturar el mensaje de error de Ghostscript (stderr)
