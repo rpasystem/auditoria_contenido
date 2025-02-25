@@ -27,8 +27,15 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf):
     # Detectar el sistema operativo
     sistema_operativo = os.name  # 'nt' para Windows, 'posix' para Linux/Mac
 
+    total_archivos = len(registros_con_novedades)  # Obtener la cantidad total de archivos
+    procesados = 0  # Contador de archivos procesados
+
     for fila in registros_con_novedades:
         try:
+
+            # Información del progreso
+            procesados += 1
+            print(f"📂 Procesando archivo {procesados} de {total_archivos}... ({total_archivos - procesados} restantes)")
             
             origen_soporte = fila[1]             
             ruta_soporte_original = fila[2]

@@ -49,7 +49,7 @@ def main():
 
     
 if __name__ == "__main__":    
-    # while True:
+    while True:
         try:
             print ("                                    ")
             print ("######## INICIA PROCESO ###########")
@@ -61,7 +61,7 @@ if __name__ == "__main__":
             print(f"Ocurrió un error: {e}")  # Registra el error            
         
         tiempo_actual = datetime.now()
-        tiempo = timedelta(minutes=1)
+        tiempo = timedelta(minutes=5)
         proxima_auditoria = tiempo_actual + tiempo
         print(f"La próxima auditoría se realizará a las {proxima_auditoria.strftime('%H:%M:%S')}")
         time.sleep(tiempo.total_seconds())  # Espera de 15 minutos entre ejecuciones
