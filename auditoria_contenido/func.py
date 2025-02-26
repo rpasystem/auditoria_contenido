@@ -162,3 +162,39 @@ def construir_ruta_soportes(engine, ruta_facturacion_caprecom):
     # func_global.validar_ruta(ruta_final)
 
     return ruta_final
+
+
+def convertir_ruta(ruta_raiz):
+    """
+    Basado en la ruta raíz, devuelve la ruta equivalente del otro volumen en el mismo sistema operativo.
+
+    - Si la ruta raíz es 'V:\\' en Windows, devuelve 'Y:\\'
+    - Si la ruta raíz es 'Y:\\' en Windows, devuelve 'V:\\'
+    - Si la ruta raíz es '/mnt/FACTURACION CAPRECOM2' en Linux, devuelve '/mnt/Y'
+    - Si la ruta raíz es '/mnt/Y' en Linux, devuelve '/mnt/FACTURACION CAPRECOM2'
+
+    Args:
+        ruta_raiz (str): Ruta base en Windows o Linux.
+
+    Returns:
+        str: La ruta equivalente en el otro volumen del mismo sistema operativo.
+    """
+    sistema = platform.system()
+
+    # Normalizar la ruta eliminando cualquier barra final innecesaria
+    ruta_raiz = ruta_raiz.rstrip("/\\")
+
+    # Definir el mapeo de rutas según el sistema operativo
+    if sistema == "Windows":
+        if ruta_raiz == "V:":
+            return "Y:\\"
+        elif ruta_raiz == "Y:":
+            return "V:\\"
+    
+    elif sistema == "Linux":
+        if ruta_raiz == "/mnt/FACTURACION CAPRECOM2":
+            return "/mnt/Y"
+        elif ruta_raiz == "/mnt/Y":
+            return "/mnt/FACTURACION CAPRECOM2"
+
+    return ruta_raiz  # Si no coincide con ninguna de las rutas conocidas, devolver la misma

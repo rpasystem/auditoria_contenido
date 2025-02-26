@@ -7,6 +7,7 @@ import fitz
 import re
 import time
 import json
+import shutil
 from datetime import datetime
 from PyPDF2 import PdfReader
 
@@ -32,21 +33,39 @@ def convertir_ruta(ruta):
     sistema_operativo = os.name  # 'nt' = Windows, 'posix' = Linux/Mac
 
     # Convertir de Linux a Windows
-    if sistema_operativo == "nt":
+    if sistema_operativo == "nt":    
+        if ruta.startswith("V:\\") or ruta.startswith("V:/"):
+            ruta = ruta.replace("V:\\", "Y:\\").replace("V:/", "Y:/")        
+        ruta = ruta.replace("\\", "/")  # Formato Linux    
+    
+    # Convertir de Windows a Linux
         if ruta.startswith("/mnt/FACTURACION CAPRECOM2/"):
             ruta = ruta.replace("/mnt/FACTURACION CAPRECOM2/", "V:/")
         elif ruta.startswith("/mnt/Y/"):
             ruta = ruta.replace("/mnt/Y/", "Y:/")
         ruta = ruta.replace("/", "\\")  # Formato Windows
+    return ruta
+
+def mapear_ruta(ruta):
+    """
+    Convierte una ruta de Windows a Linux y viceversa automáticamente.
+    
+    - Si estás en Windows y la ruta es de Linux (/mnt/FACTURACION CAPRECOM2/ o /mnt/Y/), 
+      la convierte a V:/ o Y:/ respectivamente.
+    - Si estás en Linux y la ruta es de Windows (V:/ o Y:/), 
+      la convierte a /mnt/FACTURACION CAPRECOM2/ o /mnt/Y/ respectivamente.
+    """
+    sistema_operativo = os.name  # 'nt' = Windows, 'posix' = Linux/Mac
+
+    # Convertir de Linux a Windows
+    if sistema_operativo == "nt":    
+        if ruta.startswith("V:\\") or ruta.startswith("V:/"):
+            ruta = ruta.replace("V:\\", "Y:\\").replace("V:/", "Y:/")        
+        
     
     # Convertir de Windows a Linux
-    elif sistema_operativo == "posix":
-        if ruta.startswith("V:\\") or ruta.startswith("V:/"):
-            ruta = ruta.replace("V:\\", "/mnt/FACTURACION CAPRECOM2/").replace("V:/", "/mnt/FACTURACION CAPRECOM2/")
-        elif ruta.startswith("Y:\\") or ruta.startswith("Y:/"):
-            ruta = ruta.replace("Y:\\", "/mnt/Y/").replace("Y:/", "/mnt/Y/")
-        ruta = ruta.replace("\\", "/")  # Formato Linux
-
+        if ruta.startswith("/mnt/FACTURACION CAPRECOM2/"):
+            ruta = ruta.replace("/mnt/FACTURACION CAPRECOM2/", "/mnt/Y/")        
     return ruta
 
 
@@ -348,6 +367,12 @@ def validar_documento_y_fecha(nombre_soporte, servicio, texto_pdf, documento_pac
         resultado_documento_paciente = extraer_texto_entre(texto_pdf, palabra_inicio, palabra_fin)
         if len(resultado_documento_paciente) < 1:
             validacion_documento_paciente = "NO SE ENCONTRO LA CADENA PARA EXTRAER EL DOCUMENTO"
+        elif len(resultado_documento_paciente) > 100:
+            palabra_inicio = "Tipo y número de identificación"
+            palabra_fin = "Paciente: "
+            resultado_documento_paciente = extraer_texto_entre(texto_pdf, palabra_inicio, palabra_fin)
+        if len(resultado_documento_paciente) < 1:
+            validacion_documento_paciente = "NO SE ENCONTRO LA CADENA PARA EXTRAER EL DOCUMENTO"
         else:
             documento_resultado = re.findall(r'\d+', resultado_documento_paciente)
             if documento_resultado and documento_resultado[0] == documento_paciente:
@@ -378,8 +403,17 @@ def validar_documento_y_fecha(nombre_soporte, servicio, texto_pdf, documento_pac
         resultado_documento_paciente = extraer_texto_entre(texto_pdf, palabra_inicio, palabra_fin)
         if len(resultado_documento_paciente) < 1:
             validacion_documento_paciente = "NO SE ENCONTRO LA CADENA PARA EXTRAER EL DOCUMENTO"
+        elif len(resultado_documento_paciente) > 100:
+            palabra_inicio = "Tipo y número de identificación: "
+            palabra_fin = "Paciente: "
+            resultado_documento_paciente = extraer_texto_entre(texto_pdf, palabra_inicio, palabra_fin)
+        if len(resultado_documento_paciente) < 1:
+            validacion_documento_paciente = "NO SE ENCONTRO LA CADENA PARA EXTRAER EL DOCUMENTO"
         else:
+            resultado_documento_paciente = resultado_documento_paciente.replace(" ","")
             documento_resultado = re.findall(r'\d+', resultado_documento_paciente)
+            
+
             if documento_resultado and documento_resultado[0] == documento_paciente:
                 validacion_documento_paciente = "OK"
             else:
@@ -639,30 +673,75 @@ CUV: {cuv}
 
 
 
-def descarga_cuv(engine, num_factura,ruta_soporte_destino,nombre_soporte,extension_soporte_destino):
+def descarga_cuv(engine, llave_unica,ruta_carpeta_destino,nombre_soporte):
     """
-    Consulta la tabla `api.validacion_rips` para obtener el documento, CUV y fecha de radicación
-    donde `documento` coincida exactamente con `num_factura`.
+    Consulta la tabla `api.validacion_respuesta_principal` para obtener el estado de descarga,
+    la ruta de descarga y la fecha de modificación donde `num_factura` coincida.
     """
     query = text("""
-        SELECT documento, cuv, fecha_radicacion 
-        FROM api.validacion_rips
-        WHERE documento = :num_factura
+        SELECT estado_descarga, ruta_descarga_cuv, fecha_modificacion
+        FROM api.validacion_respuesta_principal
+        WHERE num_factura = :num_factura
+        AND result_state IS TRUE
     """)
 
     with engine.begin() as connection:
-        result = connection.execute(query, {"num_factura": num_factura})  # Coincidencia exacta
+        result = connection.execute(query, {"num_factura": llave_unica})  # Coincidencia exacta
         registros = result.fetchall()
     
+    resultado = None  # Inicializar variable resultado
+
     for registro in registros:
-        documento = registro[0]  # Primer elemento: documento
-        cuv = registro[1]        # Segundo elemento: cuv (hash o identificador)
-        fecha_radicacion = registro[2]  # Tercer elemento: fecha de radicación (datetime)
-        crear_archivo_cuv(ruta_soporte_destino, documento, fecha_radicacion, cuv)
-        resultado = verificar_pdf(ruta_soporte_destino,nombre_soporte,extension_soporte_destino)
+        estado_descarga = registro[0]   # Estado de descarga
+        ruta_descarga_cuv = registro[1] # Ruta del archivo CUV
+        fecha_modificacion = registro[2]  # Fecha de modificación del archivo
+
+        ruta_archivo = convertir_ruta_bidireccional(ruta_descarga_cuv)
+        
+        # Obtener el nombre del archivo desde la ruta original
+        nombre_archivo = os.path.basename(ruta_archivo)
+
+        _, extension = os.path.splitext(ruta_archivo)
         
 
-    return resultado
+        # Construir la ruta completa en la carpeta destino
+        ruta_destino = os.path.join(ruta_carpeta_destino, nombre_archivo)
+
+        # Copiar el archivo
+        shutil.copy(ruta_archivo, ruta_destino)
+        
+        
+        # Verificar si el archivo PDF se generó correctamente
+        resultado = verificar_pdf(ruta_destino, nombre_archivo, extension)
+    
+    return resultado  # Retornar el último resultado encontrado (o None si no hubo registros)
+
+
+
+# def descarga_cuv(engine, num_factura,ruta_soporte_destino,nombre_soporte,extension_soporte_destino):
+#     """
+#     Consulta la tabla `api.validacion_rips` para obtener el documento, CUV y fecha de radicación
+#     donde `documento` coincida exactamente con `num_factura`.
+#     """
+#     query = text("""
+#         SELECT documento, cuv, fecha_radicacion 
+#         FROM api.validacion_rips
+#         WHERE documento = :num_factura
+#     """)
+
+#     with engine.begin() as connection:
+#         result = connection.execute(query, {"num_factura": num_factura})  # Coincidencia exacta
+#         registros = result.fetchall()
+    
+#     for registro in registros:
+#         documento = registro[0]  # Primer elemento: documento
+#         cuv = registro[1]        # Segundo elemento: cuv (hash o identificador)
+#         fecha_radicacion = registro[2]  # Tercer elemento: fecha de radicación (datetime)
+#         crear_archivo_cuv(ruta_soporte_destino, documento, fecha_radicacion, cuv)
+#         resultado = verificar_pdf(ruta_soporte_destino,nombre_soporte,extension_soporte_destino)
+        
+
+#     return resultado
 
 
 def descarga_json(engine, num_factura,ruta_soporte_destino,nombre_soporte,extension_soporte_destino):
@@ -703,5 +782,43 @@ def exportar_data_json(ruta_soporte_destino, json_completo):
     except Exception as e:
         print(f"❌ Error al exportar archivo JSON: {e}")
         return False
+
+
+import os
+import platform
+
+import os
+import platform
+
+def convertir_ruta_bidireccional(ruta):
+    """
+    Convierte una ruta entre Windows y Linux dependiendo del sistema operativo en el que se ejecuta.
+
+    - En Windows: Convierte rutas de Linux (`/mnt/Y/`) a Windows (`Y:\`).
+    - En Linux: Convierte rutas de Windows (`Y:\`) a Linux (`/mnt/Y/`).
+
+    Args:
+        ruta (str): Ruta en cualquier formato (Windows o Linux).
+
+    Returns:
+        str: Ruta convertida al formato del sistema operativo en el que se ejecuta.
+    """
+    sistema = platform.system()
+
+    # 🔹 Convertir de Linux a Windows si el código corre en Windows
+    if sistema == "Windows" and ruta.startswith("/mnt/Y/"):
+        ruta_convertida = ruta.replace("/mnt/Y/", "Y:\\")
+        return ruta_convertida.replace("/", "\\")  # Convertir separadores a Windows
+
+    # 🔹 Convertir de Windows a Linux si el código corre en Linux
+    elif sistema == "Linux" and ruta.startswith("Y:\\"):
+        ruta_convertida = ruta.replace("Y:\\", "/mnt/Y/")
+        return ruta_convertida.replace("\\", "/")  # Convertir separadores a Linux
+
+    # 🔹 Si ya está en el formato correcto, devolver la ruta sin cambios
+    return ruta
+
+
+
 
 

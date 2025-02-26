@@ -20,11 +20,10 @@ def insertar_soportesotros_a_control_soporte(engine):
     # Obtener las llaves ya existentes en la tabla destino.
     llaves_existentes = obtener_llaves_existentes(engine)
 
-    # Se asume que en cada fila:
-    # - `row[0]` es la fecha_soporte
-    # - `row[3]` es la llave_unica
+    eliminar_soportes_obsoletos(engine,datos_fuente,llaves_existentes)
 
-    datos_a_insertar = [row for row in datos_fuente if (row[0], row[3]) not in llaves_existentes]
+    datos_a_insertar = [row for row in datos_fuente if (row[0], row[3], row[4]) not in llaves_existentes]
+
 
 
     if not datos_a_insertar:

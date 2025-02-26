@@ -5,7 +5,7 @@ import traceback
 from analisis_contenido_soporte.analisis_contenido_soporte_func import *
 from analisis_contenido_soporte.conversion_resolucion import *
 
-def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf):
+def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf,ruta_copia_armado_cuenta_documento_fecha):
     
     listar_soportes_en_carpeta_local = listar_archivos(ruta_carpeta_destino)
     listar_soportes_en_bd = soportes_en_bd(engine)
@@ -54,8 +54,10 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf):
                         
             nombre_archivo = "-".join(str(fila[i]) if fila[i] is not None else "N/A" for i in range(9, 14)) + extension_soporte_original
             
-
+            
             ruta_soporte_destino = os.path.join(ruta_carpeta_destino, nombre_archivo_destino)
+            if "36-3-33217-3-1" in ruta_soporte_destino:
+                pass
 
             if servicio is None:
                 continue
@@ -68,7 +70,9 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf):
 
             
             if origen_soporte == "ADMON":
-                if nombre_soporte == "FACTURA" or nombre_soporte == "ANEXO" :                    
+                ruta_origen_cuv_factura_xml_json = os.path.join(ruta_copia_armado_cuenta_documento_fecha,"Factura de Venta",llave_unica)
+                
+                if nombre_soporte == "FACTURA" or nombre_soporte == "ANEXO" :                                        
                     resultado_analisis_contenido = "EJECUTADO SIN NOVEDAD"
                     resultado_conversion_resolucion = conversion_resolucion(ruta_soporte_original, ruta_soporte_destino, llave_unica)
                     resultado_copia = verificar_pdf(ruta_soporte_destino,nombre_soporte, extension_soporte_destino)
@@ -79,10 +83,10 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf):
                     copiar_archivo(ruta_soporte_original, ruta_soporte_destino)
                     resultado_copia = verificar_pdf(ruta_soporte_destino,nombre_soporte, extension_soporte_destino,)
                 
-                elif nombre_soporte == "CUV":
+                elif nombre_soporte == "CUV":                    
                     resultado_analisis_contenido = "EJECUTADO SIN NOVEDAD"
                     resultado_conversion_resolucion = "EJECUTADO SIN NOVEDAD"
-                    resultado_copia = descarga_cuv(engine, llave_unica,ruta_soporte_destino,nombre_soporte,extension_soporte_destino)
+                    resultado_copia = descarga_cuv(engine, llave_unica,ruta_carpeta_destino,nombre_soporte)
 
                 elif nombre_soporte =="JSON":
                     resultado_analisis_contenido = "EJECUTADO SIN NOVEDAD"

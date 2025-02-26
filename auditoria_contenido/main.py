@@ -17,7 +17,7 @@ import func_global
 from creacion_carpeta_soporte_anio_mes.creacion_carpeta_soporte_anio_mes import *
 from insertar_soportesotros_a_control_soporte.insertar_soportesotros_a_control_soporte import *
 from insertar_fac_xml_a_control_soporte.insertar_fac_xml_a_control_soporte import *
-from analisis_contenido_soporte.analisis_contenido_soporte import *
+from analisis_contenido_soporte.analisis_contenido_soporte_main import *
 
 
 #Conexion a BD
@@ -27,6 +27,8 @@ engine = func_global.crear_conexion_bd('rips')
 ruta_base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 ruta_base_superior_dos_niveles = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 ruta_base_superior_tres_niveles = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..','..'))
+ruta_raiz = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..','..','..'))
+ruta_copia_armado_cuenta = mapear_ruta(ruta_raiz)
 
 # RUTAS CARPETAS
 ruta_facturacion_caprecom = func_global.obtener_ruta_soportes(ruta_base)
@@ -35,15 +37,18 @@ ruta_carpeta_local_reporte_auditoria = os.path.join(ruta_base_superior_dos_nivel
 ruta_carpeta_analisis_reporte_auditoria = os.path.join(ruta_base_superior_dos_niveles, "archivos_excel", "reporte_analisis")
 ruta_carpeta_soportes = os.path.join(ruta_base_superior_tres_niveles, "SOPORTES")
 ruta_qpdf = os.path.join(ruta_base_superior_dos_niveles, "herramientas", "QPDF", "qpdf.exe")
+ruta_copia_armado_cuenta_documento = os.path.join(ruta_copia_armado_cuenta, "DOCUMENTOS")
 
 
 sistema_operativo = platform.system()    
 
 def main():
-    carpeta_soporte = creacion_carpeta_soporte_anio_mes(engine,ruta_carpeta_soportes)
+    carpeta_soporte, year, month = creacion_carpeta_soporte_anio_mes(engine,ruta_carpeta_soportes)
+    ruta_copia_armado_cuenta_documento_fecha = os.path.join(ruta_copia_armado_cuenta_documento, year, month)
+    
     insertar_soportesotros_a_control_soporte(engine)
     insertar_fac_xml_a_control_soporte(engine)
-    analisis_contenido_soporte (engine,carpeta_soporte,ruta_qpdf)
+    analisis_contenido_soporte (engine,carpeta_soporte,ruta_qpdf,ruta_copia_armado_cuenta_documento_fecha)
     
     engine.dispose()
 
