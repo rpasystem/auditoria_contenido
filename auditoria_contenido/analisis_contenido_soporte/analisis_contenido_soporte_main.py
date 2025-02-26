@@ -47,10 +47,11 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf,ruta_copia_
             nombre_archivo_destino = fila[5]
             _, extension = os.path.splitext(nombre_archivo_destino)
             extension_soporte_destino = extension.upper()
-            unidad_renal = fila[6]            
-            servicio = fila[7].upper() if fila[7] else ""
-            cliente = fila[8].upper() if fila[8] else ""
-            documento_paciente = fila[9]
+            fecha_modificacion = fila[6]
+            unidad_renal = fila[7]            
+            servicio = fila[8].upper() if fila[8] else ""
+            cliente = fila[9].upper() if fila[9] else ""
+            documento_paciente = fila[10]
                         
             nombre_archivo = "-".join(str(fila[i]) if fila[i] is not None else "N/A" for i in range(9, 14)) + extension_soporte_original
             
