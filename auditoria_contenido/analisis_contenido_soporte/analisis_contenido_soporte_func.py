@@ -16,6 +16,7 @@ from datetime import datetime
 from pytz import timezone
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import pandas as pd
 
 
 # 🔹 Obtener la zona horaria del sistema (ajústala si es necesario)
@@ -717,7 +718,7 @@ def descarga_cuv(engine, llave_unica,ruta_carpeta_destino,nombre_soporte):
         # Verificar si el archivo PDF se generó correctamente
         resultado = verificar_pdf(ruta_destino, nombre_archivo, extension)
     
-    return resultado  # Retornar el último resultado encontrado (o None si no hubo registros)
+    return resultado, ruta_destino  # Retornar el último resultado encontrado (o None si no hubo registros)
 
 
 
@@ -822,6 +823,45 @@ def convertir_ruta_bidireccional(ruta):
     return ruta
 
 
+def generar_reporte_comparativo(listar_soportes_en_bd, listar_soportes_en_carpeta_local, ruta_reporte_comparativo):
+    """
+    Genera un archivo Excel comparando los listados de soportes en BD y en la carpeta local.
+    
+    Args:
+        listar_soportes_en_bd (list): Lista de nombres de soportes en BD.
+        listar_soportes_en_carpeta_local (list): Lista de nombres de soportes en la carpeta local.
+        ruta_reporte_comparativo (str): Ruta donde se guardará el archivo Excel.
+    """
+    
+    # Crear la carpeta si no existe
+    os.makedirs(ruta_reporte_comparativo, exist_ok=True)
 
+    # Crear DataFrames para las primeras dos hojas
+    df_bd = pd.DataFrame(listar_soportes_en_bd, columns=['Soportes en BD'])
+    df_local = pd.DataFrame(listar_soportes_en_carpeta_local, columns=['Soportes en Carpeta Local'])
+    
+    # Comparaciones
+    en_bd_no_en_local = list(set(listar_soportes_en_bd) - set(listar_soportes_en_carpeta_local))
+    en_local_no_en_bd = list(set(listar_soportes_en_carpeta_local) - set(listar_soportes_en_bd))
+    coinciden = list(set(listar_soportes_en_bd) & set(listar_soportes_en_carpeta_local))
+    
+    # Crear DataFrame para la tercera hoja
+    df_comparacion = pd.DataFrame({
+        'En BD, No en Local': pd.Series(en_bd_no_en_local),
+        'En Local, No en BD': pd.Series(en_local_no_en_bd),
+        'Coinciden': pd.Series(coinciden)
+    })
 
+    # Formato del nombre del archivo
+    nombre_archivo = datetime.now().strftime('%Y %m %d %H %M %S') + " - Reporte BD vs LOCAL.xlsx"
+    ruta_archivo = os.path.join(ruta_reporte_comparativo, nombre_archivo)
+    
+    # Guardar en Excel con nombres de hoja más cortos
+    with pd.ExcelWriter(ruta_archivo, engine='xlsxwriter') as writer:
+        df_bd.to_excel(writer, sheet_name='BD', index=False)  # Nombre corto
+        df_local.to_excel(writer, sheet_name='LOCAL', index=False)  # Nombre corto
+        df_comparacion.to_excel(writer, sheet_name='bd_vs_local', index=False)
+    
+    print(f"✅ Reporte generado en: {ruta_archivo}")
+    return ruta_archivo
 

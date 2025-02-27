@@ -201,7 +201,7 @@ def insertar_facturas_cuv(engine, relacion_facturas_con_cuv,fecha_archivo_factur
                 "nombre_soporte": "CUV",
                 "llave_unica": documento,
                 "cod_soporte": "1",
-                "nombre_archivo_destino": f"{documento}-CUV.TXT",
+                "nombre_archivo_destino": f"{documento}-CUV.JSON",
                 "resultado_analisis_contenido": None,
                 "convertido_parametros_resolucion": None,
                 "resultado_copia": None

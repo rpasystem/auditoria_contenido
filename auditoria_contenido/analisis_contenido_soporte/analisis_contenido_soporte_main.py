@@ -5,13 +5,13 @@ import traceback
 from analisis_contenido_soporte.analisis_contenido_soporte_func import *
 from analisis_contenido_soporte.conversion_resolucion import *
 
-def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf,ruta_copia_armado_cuenta_documento_fecha):
-    
+def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf,ruta_copia_armado_cuenta_documento_fecha):    
     listar_soportes_en_carpeta_local = listar_archivos(ruta_carpeta_destino)
-    listar_soportes_en_bd = soportes_en_bd(engine)
     registros_con_novedades = soporte_a_procesar_con_novedades(engine)
     registros_sin_novedades = soporte_a_procesar_sin_novedades(engine)
     
+    
+
     # Convertimos listar_soportes_en_carpeta_local en un set para búsquedas rápidas
     archivos_en_carpeta = set(listar_soportes_en_carpeta_local)
 
@@ -57,7 +57,7 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf,ruta_copia_
             
             
             ruta_soporte_destino = os.path.join(ruta_carpeta_destino, nombre_archivo_destino)
-            if "102142-30" in ruta_soporte_destino:
+            if "FE178045-CUV.TXT" in ruta_soporte_destino:
                 pass
 
             if servicio is None:
@@ -87,7 +87,8 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf,ruta_copia_
                 elif nombre_soporte == "CUV":                    
                     resultado_analisis_contenido = "EJECUTADO SIN NOVEDAD"
                     resultado_conversion_resolucion = "EJECUTADO SIN NOVEDAD"
-                    resultado_copia = descarga_cuv(engine, llave_unica,ruta_carpeta_destino,nombre_soporte)
+                    resultado_copia,ruta_soporte_destino  = descarga_cuv(engine, llave_unica,ruta_carpeta_destino,nombre_soporte)
+                    
 
                 elif nombre_soporte =="RIPS":
                     resultado_analisis_contenido = "EJECUTADO SIN NOVEDAD"
@@ -106,6 +107,7 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf,ruta_copia_
                 
                 if "RECHAZO"  not in resultado_analisis_contenido:                    
                     resultado_conversion_resolucion = conversion_resolucion(ruta_soporte_original, ruta_soporte_destino, llave_unica)
+                    resultado_copia = verificar_pdf(ruta_soporte_destino,nombre_soporte,extension_soporte_destino)
                 else:
                     ruta_soporte_destino = None
 
@@ -115,7 +117,6 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf,ruta_copia_
                 
             actualizar_resultados(engine, nombre_archivo_destino, resultado_analisis_contenido, resultado_conversion_resolucion, resultado_copia,ruta_soporte_destino)
             
-
         except Exception as e:
             print(f"❌ Error en el procesamiento del archivo: {nombre_archivo}")
             print(f"🔹 Llave única: {llave_unica}")
@@ -126,6 +127,9 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf,ruta_copia_
             traceback.print_exc()  # Muestra la traza completa del error para depuración
             time.sleep(10)
 
-            
-
+    listar_soportes_en_bd = soportes_en_bd(engine)
+    listar_soportes_en_carpeta_local = listar_archivos(ruta_carpeta_destino)
     
+    ruta_reporte_comparativo = os.path.join(ruta_carpeta_destino,"..","REPORTE_COMPARATIVO")
+    generar_reporte_comparativo(listar_soportes_en_bd, listar_soportes_en_carpeta_local, ruta_reporte_comparativo)
+
