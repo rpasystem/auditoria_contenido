@@ -57,7 +57,7 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf,ruta_copia_
             
             
             ruta_soporte_destino = os.path.join(ruta_carpeta_destino, nombre_archivo_destino)
-            if "36-3-33217-3-1" in ruta_soporte_destino:
+            if "102142-30" in ruta_soporte_destino:
                 pass
 
             if servicio is None:
@@ -67,7 +67,7 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf,ruta_copia_
 
             resultado_analisis_contenido = None
             resultado_conversion_resolucion = None
-            resultado_copia = None
+            resultado_copia = None           
 
             
             if origen_soporte == "ADMON":
@@ -78,7 +78,7 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf,ruta_copia_
                     resultado_conversion_resolucion = conversion_resolucion(ruta_soporte_original, ruta_soporte_destino, llave_unica)
                     resultado_copia = verificar_pdf(ruta_soporte_destino,nombre_soporte, extension_soporte_destino)
                 
-                elif nombre_soporte == "XML":                    
+                elif nombre_soporte == "ATT":                    
                     resultado_analisis_contenido = "EJECUTADO SIN NOVEDAD"
                     resultado_conversion_resolucion = "EJECUTADO SIN NOVEDAD"
                     copiar_archivo(ruta_soporte_original, ruta_soporte_destino)
@@ -89,13 +89,14 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf,ruta_copia_
                     resultado_conversion_resolucion = "EJECUTADO SIN NOVEDAD"
                     resultado_copia = descarga_cuv(engine, llave_unica,ruta_carpeta_destino,nombre_soporte)
 
-                elif nombre_soporte =="JSON":
+                elif nombre_soporte =="RIPS":
                     resultado_analisis_contenido = "EJECUTADO SIN NOVEDAD"
                     resultado_conversion_resolucion = "EJECUTADO SIN NOVEDAD"
                     resultado_copia = descarga_json(engine, llave_unica,ruta_soporte_destino,nombre_soporte,extension_soporte_destino)
     
                 else:
                     resultado_analisis_contenido = f"RECHAZO: El soporte {nombre_soporte} no está configurado"
+                    ruta_soporte_destino = None
                     
             else:
                 resultado_analisis_contenido = validaciones (sistema_operativo, ruta_soporte_original,
@@ -105,12 +106,14 @@ def analisis_contenido_soporte(engine,ruta_carpeta_destino,ruta_qpdf,ruta_copia_
                 
                 if "RECHAZO"  not in resultado_analisis_contenido:                    
                     resultado_conversion_resolucion = conversion_resolucion(ruta_soporte_original, ruta_soporte_destino, llave_unica)
+                else:
+                    ruta_soporte_destino = None
 
                     if resultado_conversion_resolucion == "EJECUTADO SIN NOVEDAD":                        
                         resultado_copia = verificar_pdf(ruta_soporte_destino,nombre_soporte,extension_soporte_destino)
                 
                 
-            actualizar_resultados(engine, nombre_archivo_destino, resultado_analisis_contenido, resultado_conversion_resolucion, resultado_copia)
+            actualizar_resultados(engine, nombre_archivo_destino, resultado_analisis_contenido, resultado_conversion_resolucion, resultado_copia,ruta_soporte_destino)
             
 
         except Exception as e:

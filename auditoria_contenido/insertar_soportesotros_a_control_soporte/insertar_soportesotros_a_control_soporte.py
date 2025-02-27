@@ -4,7 +4,7 @@ import func_global
 
 from insertar_soportesotros_a_control_soporte.insertar_soportesotros_a_control_soporte_func import *
 
-def insertar_soportesotros_a_control_soporte(engine):
+def insertar_soportes_ur(engine):
     """
     Obtiene los registros de la tabla listar.listar_ruta_compartida_depurada y, 
     antes de insertarlos en listar.control_soportes, filtra aquellos que ya están registrados
@@ -23,8 +23,6 @@ def insertar_soportesotros_a_control_soporte(engine):
     eliminar_soportes_obsoletos(engine,datos_fuente,llaves_existentes)
 
     datos_a_insertar = [row for row in datos_fuente if (row[0], row[3], row[4]) not in llaves_existentes]
-
-
 
     if not datos_a_insertar:
         print("Todos los registros ya existen en listar.control_soportes. No se insertará nada.")

@@ -564,7 +564,8 @@ def validaciones (sistema_operativo, ruta_soporte_original,ruta_soporte_destino,
     return mensaje
 
 
-def actualizar_resultados(engine, nombre_archivo_destino, resultado_analisis_contenido, resultado_conversion_resolucion, resultado_copia):
+def actualizar_resultados(engine, nombre_archivo_destino, resultado_analisis_contenido,
+                           resultado_conversion_resolucion, resultado_copia,ruta_soporte_destino):
     """
     Actualiza las columnas en la tabla 'listar.control_soportes' usando la llave única.
     """
@@ -579,14 +580,16 @@ def actualizar_resultados(engine, nombre_archivo_destino, resultado_analisis_con
                 UPDATE listar.control_soportes
                 SET resultado_analisis_contenido = :resultado_analisis,
                     convertido_parametros_resolucion = :resultado_conversion,  -- Nombre correcto
-                    resultado_copia = :resultado_copia
+                    resultado_copia = :resultado_copia,
+                    ruta_armado = :ruta_soporte_destino
                 WHERE nombre_archivo_destino = :llave
             """),
             {
                 "resultado_analisis": resultado_analisis_contenido,
                 "resultado_conversion": resultado_conversion_resolucion,  # Ajustado al nombre correcto
                 "resultado_copia": resultado_copia,
-                "llave": nombre_archivo_destino
+                "llave": nombre_archivo_destino,
+                "ruta_soporte_destino": ruta_soporte_destino
             }
         )
         

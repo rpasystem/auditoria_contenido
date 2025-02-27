@@ -35,7 +35,7 @@ def obtener_facturas_base_auditoria(engine):
                                          error=str(e))
         return []
 
-def obtener_documentos_descargados(engine, facturas):
+def obtener_facturas_descargadas(engine, facturas):
     """
     Busca en soportes.documentos_descargados_api los documentos cuya columna documento esté en la lista de facturas
     y que tengan estado_dian = 'Exitosa'. Retorna una lista de diccionarios con las columnas:
@@ -123,9 +123,64 @@ def insertar_facturas_anexo(engine, relacion_facturas_con_anexo, fecha_archivo_f
             func_global.enviar_correo_error("Error en inserción de ANEXO", str(e))
 
 
-def insertar_facturas_cuv_json(engine, relacion_facturas_con_cuv, fecha_archivo_facturacion, existentes):
+# def insertar_facturas_cuv_rips(engine, relacion_facturas_con_cuv,fecha_archivo_facturacion, existentes):
+#     """
+#     Inserta en listar.control_soportes las facturas con CUV y JSON.
+#     """
+#     registros = []
+#     insert_query = text("""
+#         INSERT INTO listar.control_soportes
+#         (fecha_soporte, origen_soporte, ruta_completa, nombre_soporte, llave_unica, cod_soporte, 
+#          nombre_archivo_destino, resultado_analisis_contenido, convertido_parametros_resolucion, resultado_copia)
+#         VALUES
+#         (:fecha_soporte, :origen_soporte, :ruta_completa, :nombre_soporte, :llave_unica, :cod_soporte, 
+#          :nombre_archivo_destino, :resultado_analisis_contenido, :convertido_parametros_resolucion, :resultado_copia)
+#     """)
+
+#     for documento in relacion_facturas_con_cuv:
+#         if (documento, "CUV") not in existentes:
+#             registros.append({
+#                 "fecha_soporte": fecha_archivo_facturacion,
+#                 "origen_soporte": "ADMON",
+#                 "ruta_completa": "RUTA INTERNA",
+#                 "nombre_soporte": "CUV",
+#                 "llave_unica": documento,
+#                 "cod_soporte": "1",
+#                 "nombre_archivo_destino": f"{documento}-CUV.TXT",
+#                 "resultado_analisis_contenido": None,
+#                 "convertido_parametros_resolucion": None,
+#                 "resultado_copia": None
+#             })
+#             existentes.add((documento, "CUV"))
+
+#         if (documento, "JSON") not in existentes:
+#             registros.append({
+#                 "fecha_soporte": fecha_archivo_facturacion,
+#                 "origen_soporte": "ADMON",
+#                 "ruta_completa": "RUTA INTERNA",
+#                 "nombre_soporte": "RIPS",
+#                 "llave_unica": documento,
+#                 "cod_soporte": "1",
+#                 "nombre_archivo_destino": f"{documento}-RIPS.JSON",
+#                 "resultado_analisis_contenido": None,
+#                 "convertido_parametros_resolucion": None,
+#                 "resultado_copia": None
+#             })
+#             existentes.add((documento, "JSON"))
+
+#     if registros:
+#         try:
+#             with engine.begin() as connection:
+#                 connection.execute(insert_query, registros)
+#             print("✅ Facturas con CUV y JSON insertadas correctamente.")
+#         except Exception as e:
+#             print(f"❌ Error al insertar facturas con CUV/JSON: {e}")
+#             func_global.enviar_correo_error("Error en inserción de CUV/JSON", str(e))
+
+
+def insertar_facturas_cuv(engine, relacion_facturas_con_cuv,fecha_archivo_facturacion, existentes):
     """
-    Inserta en listar.control_soportes las facturas con CUV y JSON.
+    Inserta en listar.control_soportes las facturas con CUV.
     """
     registros = []
     insert_query = text("""
@@ -153,32 +208,56 @@ def insertar_facturas_cuv_json(engine, relacion_facturas_con_cuv, fecha_archivo_
             })
             existentes.add((documento, "CUV"))
 
-        if (documento, "JSON") not in existentes:
+    if registros:
+        try:
+            with engine.begin() as connection:
+                connection.execute(insert_query, registros)
+            print("✅ Facturas con CUV insertadas correctamente.")
+        except Exception as e:
+            print(f"❌ Error al insertar facturas con CUV: {e}")
+            func_global.enviar_correo_error("Error en inserción de CUV", str(e))
+
+def insertar_facturas_rips(engine, relacion_facturas_con_rips,fecha_archivo_facturacion, existentes):
+    """
+    Inserta en listar.control_soportes las facturas con RIPS.
+    """
+    registros = []
+    insert_query = text("""
+        INSERT INTO listar.control_soportes
+        (fecha_soporte, origen_soporte, ruta_completa, nombre_soporte, llave_unica, cod_soporte, 
+         nombre_archivo_destino, resultado_analisis_contenido, convertido_parametros_resolucion, resultado_copia)
+        VALUES
+        (:fecha_soporte, :origen_soporte, :ruta_completa, :nombre_soporte, :llave_unica, :cod_soporte, 
+         :nombre_archivo_destino, :resultado_analisis_contenido, :convertido_parametros_resolucion, :resultado_copia)
+    """)
+
+    for documento in relacion_facturas_con_rips:
+        if (documento, "RIPS") not in existentes:
             registros.append({
                 "fecha_soporte": fecha_archivo_facturacion,
                 "origen_soporte": "ADMON",
                 "ruta_completa": "RUTA INTERNA",
-                "nombre_soporte": "JSON",
+                "nombre_soporte": "RIPS",
                 "llave_unica": documento,
                 "cod_soporte": "1",
-                "nombre_archivo_destino": f"{documento}-JSON.JSON",
+                "nombre_archivo_destino": f"{documento}-RIPS.JSON",
                 "resultado_analisis_contenido": None,
                 "convertido_parametros_resolucion": None,
                 "resultado_copia": None
             })
-            existentes.add((documento, "JSON"))
+            existentes.add((documento, "RIPS"))
 
     if registros:
         try:
             with engine.begin() as connection:
                 connection.execute(insert_query, registros)
-            print("✅ Facturas con CUV y JSON insertadas correctamente.")
+            print("✅ Facturas con RIPS insertadas correctamente.")
         except Exception as e:
-            print(f"❌ Error al insertar facturas con CUV/JSON: {e}")
-            func_global.enviar_correo_error("Error en inserción de CUV/JSON", str(e))
+            print(f"❌ Error al insertar facturas con RIPS: {e}")
+            func_global.enviar_correo_error("Error en inserción de RIPS", str(e))
 
 
-def insertar_documentos(engine, documentos, fecha_archivo_facturacion, existentes):
+def insertar_fac_y_xml(engine, documentos, fecha_archivo_facturacion, existentes):
     """
     Inserta en listar.control_soportes los documentos obtenidos.
     """
@@ -196,16 +275,24 @@ def insertar_documentos(engine, documentos, fecha_archivo_facturacion, existente
         documento = doc.get("documento")
         formato = doc.get("formato")
         ruta = doc.get("ruta") or ""
-
+        
         extension_map = {"pdf": ".PDF", "xml": ".XML", "json": ".JSON"}
         nombre_soporte = formato.upper() if formato.lower() in extension_map else formato
         extension = extension_map.get(formato.lower(), "")
 
+        if nombre_soporte == "PDF":
+            nombre_soporte = "FACTURA"
+        else:
+            nombre_soporte = "ATT"
+        
+        
         nombre_archivo_destino = f"{documento}-{nombre_soporte}{extension}"
         llave_compuesta = (documento, nombre_soporte)
 
         if llave_compuesta in existentes:
             continue
+        
+        
 
         registros.append({
             "fecha_soporte": fecha_archivo_facturacion,
@@ -504,6 +591,22 @@ def facturas_con_anexo(engine,facturas_base_auditoria):
     return listado_facturas_con_anexo_que_se_necesitan
 
 def facturas_con_cuv(engine):
+    """
+    Consulta la base de datos para obtener las facturas que tienen 'CUV' en sop_admon_pte.
+    """
+    query = text("""
+        SELECT factura 
+        FROM auditoria_soportes.reporte_auditoria
+        WHERE sop_admon_completos LIKE '%CUV%'
+    """)
+
+    with engine.connect() as connection:
+        result = connection.execute(query)
+        listado_facturas_con_cuv = {factura[0] for factura in result.fetchall()}  # Retorna un conjunto con las facturas
+        return listado_facturas_con_cuv
+
+
+def facturas_con_rips(engine):
     """
     Consulta la base de datos para obtener las facturas que tienen 'CUV' en sop_admon_pte.
     """

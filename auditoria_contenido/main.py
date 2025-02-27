@@ -46,8 +46,8 @@ def main():
     carpeta_soporte, year, month = creacion_carpeta_soporte_anio_mes(engine,ruta_carpeta_soportes)
     ruta_copia_armado_cuenta_documento_fecha = os.path.join(ruta_copia_armado_cuenta_documento, year, month)
     
-    insertar_soportesotros_a_control_soporte(engine)
-    # insertar_fac_xml_a_control_soporte(engine)
+    # insertar_soportes_ur(engine)
+    # insertar_soportes_admon(engine)
     analisis_contenido_soporte (engine,carpeta_soporte,ruta_qpdf,ruta_copia_armado_cuenta_documento_fecha)
     
     engine.dispose()
